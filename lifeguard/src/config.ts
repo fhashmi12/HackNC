@@ -17,7 +17,7 @@ export const config = {
     base: "http://api.nessieisreal.com",
     pollSeconds: Number(env("POLL_SECONDS", "10")),
   },
-  gemini: { key: env("GEMINI_API_KEY"), model: env("GEMINI_MODEL", "gemini-2.5-flash") },
+  gemini: { key: env("GEMINI_API_KEY"), model: env("GEMINI_MODEL", "gemini-3.8-flash") },
   snowflake: {
     url: env("SNOWFLAKE_ACCOUNT_URL").replace(/\/$/, ""),
     pat: env("SNOWFLAKE_PAT"),
