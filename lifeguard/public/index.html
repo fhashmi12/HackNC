@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lifeguard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛟</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky1:#e8fbff; --sky2:#9fe3f7; --sky3:#2fb3e3; --sea:#0a7fb8; --deep:#05507a;
+  --grass:#7ed957; --grass2:#2fa84f;
+  --glass:rgba(255,255,255,.55); --glass-edge:rgba(255,255,255,.85);
+  --ink:#06324d; --ink2:#2a5f7d;
+  --danger:#e8405a; --warn:#f2a516; --ok:#2fa84f;
+}
+*{box-sizing:border-box}
+html{background:var(--sea)}
+html,body{margin:0}
+body{
+  font-family:"Segoe UI","Nunito Sans",Frutiger,"Frutiger Linotype",system-ui,sans-serif;
+  color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:
+    radial-gradient(1200px 500px at 15% -10%, #fff 0%, transparent 60%),
+    radial-gradient(900px 400px at 110% 10%, rgba(255,255,255,.7) 0%, transparent 60%),
+    linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 35%,var(--sky3) 70%,var(--sea) 100%);
+  background-attachment:fixed;
+}
+/* aurora swoosh + grassy horizon */
+body::before{content:"";position:fixed;inset:auto -10% -12% -10%;height:38vh;z-index:-2;
+  background:radial-gradient(60% 100% at 50% 100%,var(--grass) 0%,var(--grass2) 45%,transparent 70%);opacity:.55;filter:blur(2px)}
+body::after{content:"";position:fixed;left:-20%;right:-20%;top:28%;height:180px;z-index:-1;
+  background:linear-gradient(100deg,transparent 10%,rgba(255,255,255,.55) 45%,rgba(160,255,230,.35) 55%,transparent 90%);
+  transform:rotate(-6deg);filter:blur(18px)}
+.bubbles{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.bubbles i{position:absolute;bottom:-80px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.95),rgba(255,255,255,.25) 35%,rgba(120,220,255,.15) 70%,rgba(255,255,255,.5) 100%);
+  border:1px solid rgba(255,255,255,.7);animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-115vh) translateX(30px)}}
+@media (prefers-reduced-motion:reduce){.bubbles i{animation:none;display:none}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.orb{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:30px;
+  background:radial-gradient(circle at 35% 25%,#fff 0%,#bdf3ff 30%,#27a9e1 70%,#05507a 100%);
+  box-shadow:0 6px 18px rgba(5,80,122,.4),inset 0 -6px 12px rgba(0,40,80,.35),inset 0 4px 8px rgba(255,255,255,.8)}
+h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.5px;color:var(--deep);
+  text-shadow:0 1px 0 #fff,0 3px 10px rgba(5,80,122,.25)}
+.tag{margin:0;color:var(--ink2);font-weight:600}
+.spacer{flex:1}
+
+.glass{background:linear-gradient(180deg,rgba(255,255,255,.78) 0%,var(--glass) 48%,rgba(255,255,255,.38) 52%,rgba(255,255,255,.5) 100%);
+  border:1px solid var(--glass-edge);border-radius:18px;
+  box-shadow:0 10px 30px rgba(4,60,100,.18),inset 0 1px 0 #fff;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%)}
+.panel{padding:16px 18px}
+.panel h2{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--sea);display:flex;align-items:center;gap:8px}
+
+.grid{display:grid;gap:16px;grid-template-columns:1.35fr 1fr}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.col{display:grid;gap:16px;align-content:start;min-width:0}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:14px 16px}
+.stat b{display:block;font-size:28px;font-weight:800;color:var(--deep);font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--ink2);font-weight:600}
+
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.9);
+  background:linear-gradient(180deg,#fff,#d9f1fa);color:var(--ink2);box-shadow:0 1px 3px rgba(0,60,100,.15)}
+.pill.on{background:linear-gradient(180deg,#d8ffc9,#7ed957);color:#124d1f}
+.pill.on::before{content:"● ";color:#1f8a3a}
+.pill.off::before{content:"○ ";opacity:.6}
+
+.btn{appearance:none;border:1px solid rgba(255,255,255,.9);cursor:pointer;font:inherit;font-weight:700;font-size:14px;
+  padding:9px 16px;border-radius:999px;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);
+  background:linear-gradient(180deg,#8fe3ff 0%,#2cb0e6 48%,#1494cf 52%,#3fc3f3 100%);
+  box-shadow:0 3px 10px rgba(4,90,140,.35),inset 0 1px 0 rgba(255,255,255,.8);transition:transform .08s,filter .15s}
+.btn:hover{filter:brightness(1.07)} .btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.btn.green{background:linear-gradient(180deg,#c8ff9e 0%,#57c93f 48%,#3aae2c 52%,#6fdc52 100%)}
+.btn.red{background:linear-gradient(180deg,#ffb3bf 0%,#f0516b 48%,#d93652 52%,#f76a82 100%)}
+.btn.ghost{color:var(--sea);text-shadow:none;background:linear-gradient(180deg,#fff,#e4f6fd)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+#feed{display:grid;gap:12px;max-height:640px;overflow:auto;padding-right:4px}
+.alert{padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.72);
+  border-left:6px solid var(--warn);animation:pop .35s ease-out}
+.alert.fraud{border-left-color:var(--danger)} .alert.done{opacity:.7}
+@keyframes pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
+.alert .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.alert .title{font-weight:800;font-size:16px}
+.alert .meta{font-size:12px;color:var(--ink2)}
+.alert ul{margin:8px 0 10px;padding-left:18px;font-size:14px}
+.alert .sum{margin:6px 0 0;font-size:14px}
+.badge{font-size:11px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:999px;color:#fff;background:var(--warn)}
+.badge.fraud{background:var(--danger)} .badge.st{background:var(--sea)}
+.meter{height:8px;border-radius:9px;background:rgba(5,80,122,.12);overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--warn),var(--danger))}
+.empty{text-align:center;color:var(--ink2);padding:30px 10px;font-weight:600}
+audio{width:100%;height:34px;margin-bottom:8px}
+a{color:var(--sea);font-weight:700}
+
+textarea{width:100%;min-height:110px;resize:vertical;font:inherit;font-size:14px;color:var(--ink);padding:12px;border-radius:12px;
+  border:1px solid rgba(5,80,122,.25);background:rgba(255,255,255,.85);box-shadow:inset 0 2px 6px rgba(4,60,100,.1)}
+textarea:focus{outline:2px solid var(--sky3)}
+#result{margin-top:12px}
+canvas{width:100%;height:170px;display:block}
+footer{text-align:center;margin-top:24px;color:rgba(255,255,255,.95);font-weight:700;text-shadow:0 1px 3px rgba(0,50,90,.5);font-size:13px}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div class="bubbles" id="bubbles" aria-hidden="true"></div>
+<div class="wrap">
+  <header>
+    <div class="orb" aria-hidden="true">🛟</div>
+    <div>
+      <h1>Lifeguard</h1>
+      <p class="tag">Your fraud and scam guardian, right in your texts.</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="pills" id="pills" aria-label="Integrations"></div>
+  </header>
+
+  <section class="stats">
+    <div class="glass stat"><b id="sFraud">0</b><span>Fraud caught</span></div>
+    <div class="glass stat"><b id="sSusp">0</b><span>Suspicious flagged</span></div>
+    <div class="glass stat"><b id="sSaved">$0</b><span>Money protected</span></div>
+    <div class="glass stat"><b id="sChain">0</b><span>Reports on Solana</span></div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <section class="glass panel">
+        <h2>🚨 Live alerts</h2>
+        <div id="feed"><div class="empty">All calm in the water. Fire a scenario to see Lifeguard work.</div></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="glass panel">
+        <h2>🔍 Is this a scam?</h2>
+        <label class="sr" for="msg">Paste a suspicious message</label>
+        <textarea id="msg" placeholder="Paste a sketchy text or email here..."></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="checkBtn">Check it</button>
+          <span style="font-size:13px;color:var(--ink2);font-weight:600">or try:</span>
+          <span id="samples" class="row"></span>
+        </div>
+        <div id="result"></div>
+      </section>
+
+      <section class="glass panel">
+        <h2>📈 Spending</h2>
+        <canvas id="chart" aria-label="Spending over time"></canvas>
+      </section>
+
+      <section class="glass panel">
+        <h2>🎬 Demo controls</h2>
+        <div class="row">
+          <button class="btn red sm" data-sim="electronics">$1,249 laptop in Ohio</button>
+          <button class="btn red sm" data-sim="giftcard">$500 gift cards</button>
+          <button class="btn sm" data-sim="cardtest">$1 card test</button>
+          <button class="btn green sm" data-sim="normal">Normal groceries</button>
+        </div>
+        <p id="simNote" style="font-size:13px;color:var(--ink2);margin:10px 0 0"></p>
+      </section>
+    </div>
+  </div>
+  <footer>Built at HackNC 2026 · Photon · Capital One Nessie · Gemini · Snowflake · ElevenLabs · Tiger Data · Solana</footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const money = (n) => "$" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const alerts = new Map();
+
+// bubbles
+for (let i = 0; i < 18; i++) {
+  const b = document.createElement("i");
+  const s = 14 + Math.random() * 60;
+  Object.assign(b.style, { width: s + "px", height: s + "px", left: Math.random() * 100 + "%",
+    animationDuration: 14 + Math.random() * 20 + "s", animationDelay: -Math.random() * 30 + "s" });
+  $("#bubbles").appendChild(b);
+}
+
+const LABELS = { photon: "Photon", nessie: "Capital One", gemini: "Gemini", snowflake: "Snowflake", eleven: "ElevenLabs", tiger: "Tiger Data", solana: "Solana" };
+async function loadHealth() {
+  const h = await fetch("/api/health").then((r) => r.json());
+  $("#pills").innerHTML = Object.entries(h.enabled).map(([k, v]) =>
+    `<span class="pill ${v ? "on" : "off"}" title="${v ? "live" : "mock mode"}">${LABELS[k] || k}</span>`).join("");
+}
+
+async function loadStats() {
+  const s = await fetch("/api/stats").then((r) => r.json());
+  $("#sFraud").textContent = s.fraud; $("#sSusp").textContent = s.suspicious;
+  $("#sSaved").textContent = money(s.saved); $("#sChain").textContent = s.onChain;
+}
+
+function alertHTML(a) {
+  const v = a.assessment.verdict, done = a.status !== "open";
+  const title = a.kind === "transaction"
+    ? `${money(a.txn.amount)} at ${esc(a.txn.merchant)}`
+    : "Suspicious message";
+  const where = a.kind === "transaction" ? `${esc(a.txn.city)}, ${esc(a.txn.state)} · ` : "";
+  const so = a.assessment.secondOpinion ? ` · 2nd opinion: ${esc(a.assessment.secondOpinion.model)} (${a.assessment.secondOpinion.score})` : "";
+  const status = { confirmed_me: "✓ Was me", locked: "🔒 Card locked", reported: "📣 Reported" }[a.status];
+  const actions = done ? `<span class="badge st">${status}</span>${a.chainSig ? ` <a href="/api/explorer/${esc(a.chainSig)}" target="_blank" rel="noopener">View on Solana ↗</a>` : ""}`
+    : a.kind === "transaction"
+      ? `<button class="btn green sm" data-act="confirm" data-id="${a.id}">It was me</button><button class="btn red sm" data-act="lock" data-id="${a.id}">Lock card</button>`
+      : `<button class="btn red sm" data-act="report" data-id="${a.id}">Report scam</button>`;
+  return `<article class="alert ${v} ${done ? "done" : ""}" id="a-${a.id}">
+    <div class="top"><span class="title">${title}</span><span class="badge ${v}">${v}</span></div>
+    <div class="meta">${where}${new Date(a.createdAt).toLocaleTimeString()} · via ${esc(a.assessment.model)}${so}</div>
+    <p class="sum">${esc(a.assessment.summary)}</p>
+    ${a.message ? `<p class="meta" style="font-style:italic">“${esc(a.message.slice(0, 160))}${a.message.length > 160 ? "…" : ""}”</p>` : ""}
+    <ul>${a.assessment.reasons.slice(0, 4).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+    <div class="meter" aria-label="Risk ${a.assessment.score} of 100"><i style="width:${a.assessment.score}%"></i></div>
+    ${a.audioUrl ? `<audio controls src="${esc(a.audioUrl)}" style="margin-top:10px"></audio>` : ""}
+    <div class="row" style="margin-top:10px">${actions}</div>
+  </article>`;
+}
+
+function renderFeed() {
+  const list = [...alerts.values()].filter((a) => a.assessment.verdict !== "safe")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  $("#feed").innerHTML = list.length ? list.map(alertHTML).join("")
+    : `<div class="empty">All calm in the water. Fire a scenario to see Lifeguard work.</div>`;
+}
+
+$("#feed").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  b.disabled = true;
+  await fetch(`/api/alerts/${b.dataset.id}/${b.dataset.act}`, { method: "POST" });
+});
+
+async function check(text) {
+  $("#result").innerHTML = `<div class="empty">Checking…</div>`;
+  const a = await fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).then((r) => r.json());
+  $("#result").innerHTML = a.assessment.verdict === "safe"
+    ? `<div class="alert" style="border-left-color:var(--ok)"><div class="title">✅ Looks okay</div><p class="sum">${esc(a.assessment.summary)}</p></div>`
+    : alertHTML(a);
+}
+$("#checkBtn").onclick = () => $("#msg").value.trim() && check($("#msg").value.trim());
+$("#result").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  b.disabled = true;
+  await fetch(`/api/alerts/${b.dataset.id}/${b.dataset.act}`, { method: "POST" });
+});
+
+fetch("/api/scams").then((r) => r.json()).then((xs) => {
+  const names = ["📦 USPS", "🏦 Bank", "👵 Grandma"];
+  $("#samples").innerHTML = xs.map((_, i) => `<button class="btn ghost sm" data-s="${i}">${names[i] || "Sample " + (i + 1)}</button>`).join("");
+  $("#samples").onclick = (e) => { const b = e.target.closest("[data-s]"); if (b) { $("#msg").value = xs[b.dataset.s]; check(xs[b.dataset.s]); } };
+});
+
+document.querySelectorAll("[data-sim]").forEach((b) => b.onclick = async () => {
+  const r = await fetch(`/api/simulate/${b.dataset.sim}`, { method: "POST" }).then((r) => r.json());
+  $("#simNote").textContent = r.via === "nessie" ? `Created a real purchase in Nessie, ${r.note}.` : r.alert ? "Injected (offline mode)." : "Injected: looked normal, no alert.";
+});
+
+async function drawChart() {
+  const data = await fetch("/api/series").then((r) => r.json());
+  const c = $("#chart"), dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const x = c.getContext("2d"); x.scale(dpr, dpr); x.clearRect(0, 0, w, h);
+  if (!data.length) { x.fillStyle = "#2a5f7d"; x.font = "600 13px sans-serif"; x.fillText("No transactions yet", 10, h / 2); return; }
+  const vals = data.map((d) => +d.total), max = Math.max(...vals) * 1.15 || 1, pad = 24;
+  const px = (i) => pad + (i * (w - pad * 2)) / Math.max(1, vals.length - 1), py = (v) => h - pad - (v / max) * (h - pad * 2);
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(47,179,227,.55)"); g.addColorStop(1, "rgba(47,179,227,0)");
+  x.beginPath(); vals.forEach((v, i) => (i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v))));
+  x.lineTo(px(vals.length - 1), h - pad); x.lineTo(px(0), h - pad); x.closePath(); x.fillStyle = g; x.fill();
+  x.beginPath(); vals.forEach((v, i) => (i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v))));
+  x.strokeStyle = "#0a7fb8"; x.lineWidth = 2.5; x.lineJoin = "round"; x.stroke();
+  vals.forEach((v, i) => { x.beginPath(); x.arc(px(i), py(v), 3.5, 0, 7); x.fillStyle = "#fff"; x.fill(); x.strokeStyle = "#0a7fb8"; x.lineWidth = 2; x.stroke(); });
+  x.fillStyle = "#2a5f7d"; x.font = "600 11px sans-serif"; x.fillText(money(Math.max(...vals)), pad, 14);
+}
+
+const es = new EventSource("/events");
+es.addEventListener("alert", (e) => { const a = JSON.parse(e.data); alerts.set(a.id, a); renderFeed(); loadStats(); });
+es.addEventListener("txn", () => drawChart());
+
+(async () => {
+  await loadHealth();
+  (await fetch("/api/alerts").then((r) => r.json())).forEach((a) => alerts.set(a.id, a));
+  renderFeed(); loadStats(); drawChart();
+})();
+addEventListener("resize", drawChart);
+</script>
+</body>
+</html>
