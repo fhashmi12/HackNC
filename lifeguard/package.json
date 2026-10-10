@@ -1,0 +1,31 @@
+{
+  "name": "lifeguard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An AI fraud and scam guardian that lives in your texts. HackNC 2026.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx scripts/seed-nessie.ts",
+    "simulate": "tsx scripts/simulate.ts",
+    "db:init": "tsx scripts/db-init.ts",
+    "solana:wallet": "tsx scripts/solana-wallet.ts",
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx scripts/eval.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "spectrum-ts": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

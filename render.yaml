@@ -1,0 +1,36 @@
+# Render blueprint: New > Blueprint > pick this repo. Fill the secret env vars in the Render dashboard,
+# then point the .tech domain at the service (Settings > Custom Domains) and set PUBLIC_URL to it.
+services:
+  - type: web
+    name: lifeguard
+    runtime: docker
+    rootDir: lifeguard
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: USE_TERMINAL
+        value: "false"
+      - key: PUBLIC_URL
+        sync: false
+      - key: SPECTRUM_PROJECT_ID
+        sync: false
+      - key: SPECTRUM_PROJECT_SECRET
+        sync: false
+      - key: NESSIE_API_KEY
+        sync: false
+      - key: NESSIE_ACCOUNT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SNOWFLAKE_ACCOUNT_URL
+        sync: false
+      - key: SNOWFLAKE_PAT
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: TIGER_DATABASE_URL
+        sync: false
+      - key: SOLANA_SECRET_KEY
+        sync: false
+      - key: TRUSTED_CONTACTS
+        sync: false
