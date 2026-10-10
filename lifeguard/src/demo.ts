@@ -27,6 +27,8 @@ export const SCAM_TEXTS = [
 
 export function offlineHistory(accountId: string): Txn[] {
   const out: Txn[] = [];
+  // Pinned to midnight UTC so restarts re-insert the same (id, ts) rows and Tiger skips them as duplicates.
+  const today = new Date().setUTCHours(0, 0, 0, 0);
   let day = 30;
   for (const m of NORMAL_MERCHANTS)
     for (const amount of m.amounts)
@@ -38,7 +40,7 @@ export function offlineHistory(accountId: string): Txn[] {
         city: m.city,
         state: m.state,
         amount,
-        date: new Date(Date.now() - day-- * 86400000).toISOString(),
+        date: new Date(today - day-- * 86400000 + 12 * 3600000).toISOString(),
       });
   return out;
 }
