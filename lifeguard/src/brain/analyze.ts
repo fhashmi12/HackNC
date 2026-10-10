@@ -24,7 +24,12 @@ async function secondOpinion(payload: string): Promise<Assessment["secondOpinion
   }
 }
 
-async function combine(rule: { score: number; reasons: string[] }, payload: string, fallbackSummary: string): Promise<Assessment> {
+async function combine(
+  rule: { score: number; reasons: string[] },
+  payload: string,
+  fallbackSummary: string,
+  known: string[] = []
+): Promise<Assessment> {
   const g = await geminiJSON<LLMOut>(SYSTEM, payload);
   let a: Assessment = g
     ? { verdict: g.verdict, score: Math.round((g.score + rule.score) / 2), reasons: [...new Set([...rule.reasons, ...g.reasons])].slice(0, 5), summary: g.summary, model: "gemini" }
@@ -41,10 +46,18 @@ async function combine(rule: { score: number; reasons: string[] }, payload: stri
       a.verdict = verdictFor(a.score);
     }
   }
+
+  // Already on the Solana community blocklist: that's a confirmed report, so no model can talk it down.
+  if (known.length) {
+    a.score = Math.max(a.score, 90);
+    a.verdict = "fraud";
+    a.reasons = [`Already reported as a scam on the Lifeguard community blocklist`, ...a.reasons.filter((r) => !r.includes("blocklist"))].slice(0, 5);
+    a.blocklisted = true;
+  }
   return a;
 }
 
-export async function assessTxn(t: Txn, b: Baseline): Promise<Assessment> {
+export async function assessTxn(t: Txn, b: Baseline, known: string[] = []): Promise<Assessment> {
   const rule = scoreTxn(t, b);
   const payload = JSON.stringify({
     type: "card_transaction",
@@ -57,16 +70,22 @@ export async function assessTxn(t: Txn, b: Baseline): Promise<Assessment> {
     v === "safe"
       ? `$${t.amount.toFixed(2)} at ${t.merchant} looks normal.`
       : `A $${t.amount.toFixed(2)} charge at ${t.merchant} in ${t.city}, ${t.state} doesn't look like you. Was this you?`;
-  return combine(rule, payload, fallback);
+  return combine(rule, payload, fallback, known);
 }
 
-export async function assessMessage(text: string): Promise<Assessment> {
+export async function assessMessage(text: string, known: string[] = []): Promise<Assessment> {
   const rule = scoreMessage(text);
-  const payload = JSON.stringify({ type: "forwarded_message", message: text, rule_findings: rule });
+  const payload = JSON.stringify({
+    type: "forwarded_message",
+    message: text,
+    rule_findings: rule,
+    ...(known.length ? { community_blocklist: "this message contains a link or number already reported as a scam" } : {}),
+  });
   const v = verdictFor(rule.score);
   const fallback =
     v === "safe"
       ? "I don't see the usual scam signs in this one, but never share codes or passwords over text."
       : `This looks like a scam: ${rule.reasons.slice(0, 2).join(" and ").toLowerCase()}. Don't click anything or reply to them.`;
-  return combine(rule, payload, fallback);
+  const blockedFallback = "Other Lifeguard users already reported this link or number as a scam. Don't click anything or reply to them.";
+  return combine(rule, payload, known.length && v === "safe" ? blockedFallback : fallback, known);
 }

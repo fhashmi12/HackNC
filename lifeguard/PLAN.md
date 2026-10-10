@@ -16,6 +16,20 @@ The skeleton already runs end to end in mock mode. The weekend is about turning 
 
 Submit to **every** category on Devpost. Judges pick, the cap only limits how many we take home.
 
+## Code status
+
+Done in the repo (no keys needed to try them, see README "Beyond the basics"):
+
+- [x] Stretch 1, screenshot check: image attachments in iMessage + dashboard upload → Gemini vision
+- [x] Stretch 2, family mode: `TRUSTED_CONTACTS` / text `family +1...`
+- [x] Stretch 4, blocklist lookup: hashed indicators checked against Solana memos before analysis
+- [x] Weekly summary text (`summary`, scheduled push, dashboard preview)
+- [x] Prompt eval harness: `npm run eval` (rules currently 20/20 on the set; they were tuned on it, so add fresh cases before trusting that)
+- [x] Deploy: `Dockerfile` + root `render.yaml`
+- [x] Fixed `npm run db:init` silently skipping the statements that follow a comment (CREATE EXTENSION, the continuous aggregate, compression)
+
+Still needs keys / people: everything in the setup checklist below, then verify each integration live.
+
 ## Setup checklist (first hour, do in parallel)
 
 - [ ] Photon: sign up at app.photon.codes, get project ID + secret, ask in the Photon sponsor channel for an iMessage line

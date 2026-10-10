@@ -6,7 +6,15 @@ if (!db) {
   process.exit(1);
 }
 const sql = await readFile(new URL("../sql/schema.sql", import.meta.url), "utf8");
-for (const stmt of sql.split(/;\s*\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith("--"))) {
+// Drop comment lines first: a statement preceded by a comment would otherwise be skipped entirely.
+const stmts = sql
+  .split("\n")
+  .filter((l) => !l.trim().startsWith("--"))
+  .join("\n")
+  .split(/;\s*\n/)
+  .map((s) => s.trim().replace(/;$/, ""))
+  .filter(Boolean);
+for (const stmt of stmts) {
   try {
     await db.query(stmt);
     console.log("✓", stmt.split("\n")[0].slice(0, 70));

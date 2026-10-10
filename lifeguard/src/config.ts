@@ -26,6 +26,14 @@ export const config = {
   eleven: { key: env("ELEVENLABS_API_KEY"), voice: env("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM") },
   tiger: { url: env("TIGER_DATABASE_URL") },
   solana: { rpc: env("SOLANA_RPC_URL", "https://api.devnet.solana.com"), secret: env("SOLANA_SECRET_KEY") },
+
+  // Stretch features
+  family: {
+    // E.164 phone numbers (or iMessage emails) that also get every fraud alert.
+    contacts: env("TRUSTED_CONTACTS").split(",").map((s) => s.trim()).filter(Boolean),
+    protectedName: env("PROTECTED_NAME", "Dorothy"),
+  },
+  weeklySummaryHours: Number(env("WEEKLY_SUMMARY_HOURS", "168")), // 0 disables the scheduled summary
 };
 
 export const enabled = {

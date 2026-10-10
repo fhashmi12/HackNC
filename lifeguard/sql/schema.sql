@@ -40,3 +40,4 @@ SELECT add_continuous_aggregate_policy('spend_hourly',
 -- Compression keeps months of history on the free tier.
 ALTER TABLE txns SET (timescaledb.compress, timescaledb.compress_segmentby = 'account_id');
 SELECT add_compression_policy('txns', INTERVAL '7 days', if_not_exists => TRUE);
+

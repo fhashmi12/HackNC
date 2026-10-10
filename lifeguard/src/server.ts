@@ -3,11 +3,11 @@ import express from "express";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { config, enabled } from "./config.js";
-import { bus, checkMessage, processTxn, resolve } from "./guardian.js";
+import { bus, checkImage, checkMessage, processTxn, resolve, weeklySummary } from "./guardian.js";
 import { recentAlerts, spendSeries, stats } from "./integrations/tiger.js";
 import { createMerchant, createPurchase, getAccount } from "./integrations/nessie.js";
 import { SCAM_TEXTS, SCENARIOS } from "./demo.js";
-import { explorerUrl } from "./integrations/solana.js";
+import { blocklistSize, explorerUrl } from "./integrations/solana.js";
 
 export const OFFLINE_ACCOUNT = "offline-demo";
 const accountId = () => config.nessie.accountId || OFFLINE_ACCOUNT;
@@ -17,7 +17,14 @@ export function startServer() {
   app.use(express.json());
   app.use(express.static(join(process.cwd(), "public")));
 
-  app.get("/api/health", (_req, res) => res.json({ enabled, publicUrl: config.publicUrl }));
+  app.get("/api/health", (_req, res) =>
+    res.json({
+      enabled,
+      publicUrl: config.publicUrl,
+      features: { screenshots: enabled.gemini, family: config.family.contacts.length, blocklist: blocklistSize() },
+    })
+  );
+  app.get("/api/summary", async (_req, res) => res.json({ text: await weeklySummary() }));
   app.get("/api/alerts", async (_req, res) => res.json(await recentAlerts()));
   app.get("/api/stats", async (_req, res) => res.json(await stats()));
   app.get("/api/series", async (_req, res) => res.json(await spendSeries(accountId())));
@@ -29,6 +36,18 @@ export function startServer() {
     const text = String(req.body?.text ?? "").slice(0, 4000);
     if (!text) return res.status(400).json({ error: "text required" });
     res.json(await checkMessage(text));
+  });
+
+  // Screenshot check: POST the raw image bytes with its Content-Type (image/png, image/jpeg, ...).
+  app.post("/api/check-image", express.raw({ type: "image/*", limit: "8mb" }), async (req, res) => {
+    const mime = String(req.headers["content-type"] ?? "");
+    if (!Buffer.isBuffer(req.body) || !req.body.length || !mime.startsWith("image/")) {
+      return res.status(400).json({ error: "send an image body with an image/* content type" });
+    }
+    if (!enabled.gemini) return res.status(503).json({ error: "screenshot check needs GEMINI_API_KEY" });
+    const a = await checkImage(req.body, mime);
+    if (!a) return res.status(422).json({ error: "no readable text in that image" });
+    res.json(a);
   });
 
   app.post("/api/alerts/:id/:action", async (req, res) => {

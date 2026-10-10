@@ -11,7 +11,8 @@
     "simulate": "tsx scripts/simulate.ts",
     "db:init": "tsx scripts/db-init.ts",
     "solana:wallet": "tsx scripts/solana-wallet.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.0",

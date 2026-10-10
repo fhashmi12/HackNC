@@ -42,7 +42,7 @@ export function scoreTxn(t: Txn, b: Baseline) {
 // Scam message heuristics for forwarded texts and emails.
 const SCAM_PATTERNS: [RegExp, string, number][] = [
   [/\b(urgent|immediately|within 24 hours|final notice|act now)\b/i, "Pressure or urgency language", 20],
-  [/\b(gift ?card|bitcoin|crypto|zelle|wire transfer|venmo)\b/i, "Asks for hard to reverse payment", 30],
+  [/\b(gift ?cards?|bitcoin|crypto|zelle|wire transfer|venmo|cash ?app)\b/i, "Asks for hard to reverse payment", 30],
   [/\b(verify|confirm|update) (your )?(account|identity|payment|password)\b/i, "Asks you to verify account details", 25],
   [/\b(package|parcel|delivery).{0,40}(held|failed|pending|redeliver)/i, "Fake delivery problem", 25],
   [/\b(irs|social security|ssa|medicare)\b/i, "Impersonates a government agency", 25],
@@ -50,6 +50,8 @@ const SCAM_PATTERNS: [RegExp, string, number][] = [
   [/https?:\/\/[^\s]*(bit\.ly|tinyurl|t\.co|\.xyz|\.top|\.click|\.info)/i, "Shortened or sketchy link", 25],
   [/https?:\/\/[^\s]*(paypa1|amaz0n|app1e|chase-|wellsfarg0|usps-|capitalone-)/i, "Lookalike brand domain", 35],
   [/\b(grandma|grandpa|mom|dad).{0,40}(jail|accident|bail|stuck)/i, "Family emergency scam pattern", 30],
+  [/\b(charge|order|purchase|payment) (of|for) \$[\d,.]+.{0,100}\b(call|contact)\b/i, "Fake charge alert that pushes you to call", 30],
+  [/\b(tech|microsoft|apple|windows|geek squad) support\b|\b(virus|hacked|infected)\b.{0,60}\b(computer|pc|device)\b|\b(computer|pc|device)\b.{0,60}\b(virus|hacked|infected)\b/i, "Tech support scam pattern", 30],
 ];
 
 export function scoreMessage(text: string) {
@@ -59,9 +61,13 @@ export function scoreMessage(text: string) {
   return { score: Math.min(score, 100), reasons };
 }
 
+// URLs (trailing punctuation trimmed) and phone numbers (digits only), normalized so the
+// same scam hashes identically no matter how it was formatted in the message.
 export const extractIndicators = (text: string) => [
-  ...(text.match(/https?:\/\/[^\s]+/g) ?? []),
-  ...(text.match(/\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g) ?? []),
+  ...new Set([
+    ...(text.match(/https?:\/\/[^\s]+/g) ?? []).map((u) => u.replace(/[.,!?)\]]+$/, "").toLowerCase()),
+    ...(text.match(/\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g) ?? []).map((p) => `tel:${p.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "")}`),
+  ]),
 ];
 
 export const verdictFor = (score: number) => (score >= 60 ? "fraud" : score >= 30 ? "suspicious" : "safe") as

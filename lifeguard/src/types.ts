@@ -19,6 +19,7 @@ export interface Assessment {
   summary: string; // one friendly sentence for the user
   model: string; // which brain produced it
   secondOpinion?: { model: string; verdict: Verdict; score: number };
+  blocklisted?: boolean; // an indicator was already on the Solana community blocklist
 }
 
 export interface Alert {
@@ -27,6 +28,7 @@ export interface Alert {
   createdAt: string;
   txn?: Txn;
   message?: string;
+  source?: "text" | "screenshot";
   assessment: Assessment;
   audioUrl?: string;
   status: "open" | "confirmed_me" | "locked" | "reported";

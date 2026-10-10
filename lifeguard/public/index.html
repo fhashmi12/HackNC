@@ -110,6 +110,9 @@ textarea:focus{outline:2px solid var(--sky3)}
 canvas{width:100%;height:170px;display:block}
 footer{text-align:center;margin-top:24px;color:rgba(255,255,255,.95);font-weight:700;text-shadow:0 1px 3px rgba(0,50,90,.5);font-size:13px}
 .sr{position:absolute;left:-9999px}
+.badge.chain{background:linear-gradient(180deg,#b78cff,#7b3fe4)} .badge.shot{background:var(--ink2)}
+#summary{white-space:pre-line;font-size:14px;margin:10px 0 0}
+.drop{outline:3px dashed var(--sky3);outline-offset:4px}
 </style>
 </head>
 <body>
@@ -147,6 +150,8 @@ footer{text-align:center;margin-top:24px;color:rgba(255,255,255,.95);font-weight
         <textarea id="msg" placeholder="Paste a sketchy text or email here..."></textarea>
         <div class="row" style="margin-top:10px">
           <button class="btn" id="checkBtn">Check it</button>
+          <label class="btn ghost sm" for="shot" title="Upload a screenshot of a text or email">📸 Screenshot</label>
+          <input type="file" id="shot" accept="image/*" class="sr">
           <span style="font-size:13px;color:var(--ink2);font-weight:600">or try:</span>
           <span id="samples" class="row"></span>
         </div>
@@ -167,6 +172,8 @@ footer{text-align:center;margin-top:24px;color:rgba(255,255,255,.95);font-weight
           <button class="btn green sm" data-sim="normal">Normal groceries</button>
         </div>
         <p id="simNote" style="font-size:13px;color:var(--ink2);margin:10px 0 0"></p>
+        <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="sumBtn">📅 Preview weekly summary text</button></div>
+        <p id="summary"></p>
       </section>
     </div>
   </div>
@@ -192,7 +199,8 @@ const LABELS = { photon: "Photon", nessie: "Capital One", gemini: "Gemini", snow
 async function loadHealth() {
   const h = await fetch("/api/health").then((r) => r.json());
   $("#pills").innerHTML = Object.entries(h.enabled).map(([k, v]) =>
-    `<span class="pill ${v ? "on" : "off"}" title="${v ? "live" : "mock mode"}">${LABELS[k] || k}</span>`).join("");
+    `<span class="pill ${v ? "on" : "off"}" title="${v ? "live" : "mock mode"}">${LABELS[k] || k}</span>`).join("")
+    + (h.features?.family ? `<span class="pill on" title="trusted contacts get fraud alerts">Family ×${h.features.family}</span>` : "");
 }
 
 async function loadStats() {
@@ -214,7 +222,7 @@ function alertHTML(a) {
       ? `<button class="btn green sm" data-act="confirm" data-id="${a.id}">It was me</button><button class="btn red sm" data-act="lock" data-id="${a.id}">Lock card</button>`
       : `<button class="btn red sm" data-act="report" data-id="${a.id}">Report scam</button>`;
   return `<article class="alert ${v} ${done ? "done" : ""}" id="a-${a.id}">
-    <div class="top"><span class="title">${title}</span><span class="badge ${v}">${v}</span></div>
+    <div class="top"><span class="title">${title}</span><span class="row" style="gap:4px">${a.source === "screenshot" ? `<span class="badge shot">📸 screenshot</span>` : ""}${a.assessment.blocklisted ? `<span class="badge chain">⛓ on blocklist</span>` : ""}<span class="badge ${v}">${v}</span></span></div>
     <div class="meta">${where}${new Date(a.createdAt).toLocaleTimeString()} · via ${esc(a.assessment.model)}${so}</div>
     <p class="sum">${esc(a.assessment.summary)}</p>
     ${a.message ? `<p class="meta" style="font-style:italic">“${esc(a.message.slice(0, 160))}${a.message.length > 160 ? "…" : ""}”</p>` : ""}
@@ -238,13 +246,29 @@ $("#feed").addEventListener("click", async (e) => {
   await fetch(`/api/alerts/${b.dataset.id}/${b.dataset.act}`, { method: "POST" });
 });
 
-async function check(text) {
-  $("#result").innerHTML = `<div class="empty">Checking…</div>`;
-  const a = await fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).then((r) => r.json());
+function showResult(a) {
+  if (a.error) { $("#result").innerHTML = `<div class="empty">${esc(a.error)}</div>`; return; }
+  if (a.source === "screenshot") $("#msg").value = a.message;
   $("#result").innerHTML = a.assessment.verdict === "safe"
     ? `<div class="alert" style="border-left-color:var(--ok)"><div class="title">✅ Looks okay</div><p class="sum">${esc(a.assessment.summary)}</p></div>`
     : alertHTML(a);
 }
+async function check(text) {
+  $("#result").innerHTML = `<div class="empty">Checking…</div>`;
+  showResult(await fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).then((r) => r.json()));
+}
+async function checkShot(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  $("#result").innerHTML = `<div class="empty">Reading your screenshot…</div>`;
+  showResult(await fetch("/api/check-image", { method: "POST", headers: { "Content-Type": file.type }, body: file }).then((r) => r.json()).catch(() => ({ error: "Upload failed" })));
+}
+$("#shot").onchange = (e) => { checkShot(e.target.files[0]); e.target.value = ""; };
+// Drag a screenshot onto the textarea, or paste one from the clipboard.
+$("#msg").addEventListener("dragover", (e) => { e.preventDefault(); $("#msg").classList.add("drop"); });
+$("#msg").addEventListener("dragleave", () => $("#msg").classList.remove("drop"));
+$("#msg").addEventListener("drop", (e) => { e.preventDefault(); $("#msg").classList.remove("drop"); checkShot(e.dataTransfer.files[0]); });
+$("#msg").addEventListener("paste", (e) => { const f = [...e.clipboardData.files].find((f) => f.type.startsWith("image/")); if (f) { e.preventDefault(); checkShot(f); } });
+$("#sumBtn").onclick = async () => { $("#summary").textContent = (await fetch("/api/summary").then((r) => r.json())).text; };
 $("#checkBtn").onclick = () => $("#msg").value.trim() && check($("#msg").value.trim());
 $("#result").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]"); if (!b) return;

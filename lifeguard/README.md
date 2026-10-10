@@ -54,7 +54,19 @@ npm run seed                # creates a Nessie customer + card with 30 days of n
 npm run db:init             # creates Tiger Data hypertables + continuous aggregate
 npm run solana:wallet       # devnet keypair + airdrop
 npm run simulate electronics   # fire an attack: electronics | giftcard | cardtest | normal
+npm run eval                # 20 labeled scam/legit messages through rules + models (add -- --rules for offline)
 ```
+
+## Beyond the basics
+
+- **Screenshot check:** text Lifeguard a screenshot of a scam (or drop/paste one on the dashboard). Gemini vision transcribes it, then it runs through the normal scam pipeline. `POST /api/check-image` with raw image bytes.
+- **Family mode:** set `TRUSTED_CONTACTS` or text `family +15551234567`. That person gets a heads up on every fraud alert, so an adult child knows when grandma's card is hit.
+- **Community blocklist lookup:** before analyzing a message or charge, Lifeguard hashes its links, phone numbers, and merchant and checks them against past Solana reports. A hit forces a fraud verdict no model can talk down.
+- **Weekly summary:** text `summary` any time, and it's pushed every `WEEKLY_SUMMARY_HOURS`. Preview it on the dashboard.
+
+## Deploy
+
+`render.yaml` at the repo root is a Render blueprint (Docker, root dir `lifeguard/`). Any container host works with the `Dockerfile`. Set `PUBLIC_URL` to the deployed URL (your .tech domain) so voice note links resolve.
 
 ## Demo script (3 minutes)
 

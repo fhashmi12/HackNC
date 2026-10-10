@@ -2,10 +2,11 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { config } from "./config.js";
-import { getPurchases, lockAccount } from "./integrations/nessie.js";
+import { getAccount, getPurchases, lockAccount } from "./integrations/nessie.js";
 import { baseline, getAlert, recentAlerts, saveAlert, saveTxn } from "./integrations/tiger.js";
 import { speak } from "./integrations/elevenlabs.js";
-import { reportOnChain, explorerUrl } from "./integrations/solana.js";
+import { blocklisted, reportOnChain, explorerUrl } from "./integrations/solana.js";
+import { geminiReadImage } from "./integrations/gemini.js";
 import { assessMessage, assessTxn } from "./brain/analyze.js";
 import { extractIndicators } from "./detect/rules.js";
 import type { Alert, Txn } from "./types.js";
@@ -27,7 +28,7 @@ export async function processTxn(t: Txn): Promise<Alert | null> {
   // First poll just learns the baseline, so old history doesn't spam alerts.
   if (!warm) return null;
 
-  const assessment = await assessTxn(t, b);
+  const assessment = await assessTxn(t, b, await blocklisted([`merchant:${t.merchant}`]));
   if (assessment.verdict === "safe") return null;
 
   const alert: Alert = {
@@ -62,13 +63,15 @@ export function startPolling() {
   setInterval(pollOnce, config.nessie.pollSeconds * 1000);
 }
 
-export async function checkMessage(text: string): Promise<Alert> {
-  const assessment = await assessMessage(text);
+export async function checkMessage(text: string, source: Alert["source"] = "text"): Promise<Alert> {
+  // Blocklist lookup first: anything the community already reported on Solana is an instant red flag.
+  const assessment = await assessMessage(text, await blocklisted(extractIndicators(text)));
   const alert: Alert = {
     id: randomUUID().slice(0, 8),
     kind: "scam_message",
     createdAt: new Date().toISOString(),
     message: text,
+    source,
     assessment,
     status: "open",
   };
@@ -78,6 +81,33 @@ export async function checkMessage(text: string): Promise<Alert> {
   await saveAlert(alert);
   bus.emit("alert", alert);
   return alert;
+}
+
+/** Screenshot check: Gemini vision transcribes the image, then it goes through the normal scam pipeline. */
+export async function checkImage(image: Buffer, mimeType: string): Promise<Alert | null> {
+  const text = await geminiReadImage(image, mimeType);
+  return text ? checkMessage(text, "screenshot") : null;
+}
+
+/** Weekly summary text: what Lifeguard did for you this week, in plain English. */
+export async function weeklySummary(days = 7): Promise<string> {
+  const since = Date.now() - days * 86400000;
+  const [acct, all] = await Promise.all([getAccount().catch(() => null), recentAlerts(500)]);
+  const week = all.filter((a) => Date.parse(a.createdAt) >= since && a.assessment.verdict !== "safe");
+  const txn = week.filter((a) => a.kind === "transaction");
+  const msgs = week.filter((a) => a.kind === "scam_message");
+  const locked = txn.filter((a) => a.status === "locked");
+  const saved = locked.reduce((s, a) => s + (a.txn?.amount ?? 0), 0);
+  const reported = week.filter((a) => a.chainSig).length;
+  const lines = [
+    `🛟 Your Lifeguard week`,
+    acct ? `${acct.nickname}: $${acct.balance.toFixed(2)} balance` : "",
+    txn.length ? `• ${txn.length} unusual charge${txn.length > 1 ? "s" : ""} flagged${locked.length ? `, ${locked.length} stopped ($${saved.toFixed(2)} protected)` : ""}` : "• No unusual charges. Your card looked normal all week 👍",
+    msgs.length ? `• ${msgs.length} sketchy message${msgs.length > 1 ? "s" : ""} checked` : "",
+    reported ? `• ${reported} scam${reported > 1 ? "s" : ""} added to the community blocklist` : "",
+    `Tip: real banks and the post office never text you a link to "verify" anything.`,
+  ];
+  return lines.filter(Boolean).join("\n");
 }
 
 async function latestOpen(kind?: Alert["kind"]) {
