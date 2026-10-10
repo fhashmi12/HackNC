@@ -5,7 +5,7 @@ import pg from "pg";
 import { config, enabled } from "../config.js";
 import type { Alert, Txn } from "../types.js";
 
-const pool = enabled.tiger ? new pg.Pool({ connectionString: config.tiger.url, ssl: { rejectUnauthorized: false } }) : null;
+const pool = enabled.tiger ? new pg.Pool({ connectionString: config.tiger.url, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 10_000 }) : null;
 
 const mem = { txns: [] as Txn[], alerts: [] as Alert[] };
 
