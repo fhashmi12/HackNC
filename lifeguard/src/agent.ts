@@ -82,12 +82,26 @@ export async function startAgent() {
     return;
   }
 
-  const app = await Spectrum({
-    ...(enabled.photon ? { projectId: config.photon.projectId, projectSecret: config.photon.projectSecret } : {}),
-    providers,
-    // A screenshot with a caption arrives as one group message; split it so we see the image.
-    options: { flattenGroups: true },
-  } as any);
+  const connect = (providers: any[]) =>
+    Spectrum({
+      ...(enabled.photon ? { projectId: config.photon.projectId, projectSecret: config.photon.projectSecret } : {}),
+      providers,
+      // A screenshot with a caption arrives as one group message; split it so we see the image.
+      options: { flattenGroups: true },
+    } as any);
+
+  let app: Awaited<ReturnType<typeof connect>>;
+  let useTerminal = config.photon.useTerminal;
+  try {
+    app = await connect(providers);
+  } catch (e) {
+    // The terminal provider launches a helper binary that some machines (often Windows) block.
+    // iMessage doesn't need it, so fall back instead of taking the whole agent down.
+    if (!(enabled.photon && useTerminal)) throw e;
+    console.warn(`[agent] terminal chat unavailable (${(e as Error).message}), continuing with iMessage only. Set USE_TERMINAL=false to skip this.`);
+    useTerminal = false;
+    app = await connect([imessage.config()]);
+  }
 
   async function addFamily(raw: string): Promise<string> {
     if (!enabled.photon) return "Family mode needs the iMessage line (Photon) connected.";
@@ -125,7 +139,7 @@ export async function startAgent() {
     }, config.weeklySummaryHours * 3600_000);
   }
 
-  console.log(`[agent] Lifeguard online via ${enabled.photon ? "iMessage" : ""}${enabled.photon && config.photon.useTerminal ? " + " : ""}${config.photon.useTerminal ? "terminal" : ""}`);
+  console.log(`[agent] Lifeguard online via ${enabled.photon ? "iMessage" : ""}${enabled.photon && useTerminal ? " + " : ""}${useTerminal ? "terminal" : ""}`);
 
   for await (const [space, message] of app.messages) {
     subscribers.set(space.id, space);
