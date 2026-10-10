@@ -144,6 +144,7 @@ export async function startAgent() {
   for await (const [space, message] of app.messages) {
     subscribers.set(space.id, space);
     const content: any = message.content;
+    console.log(`[agent] ← ${space.__platform} ${space.id}: ${content.type === "text" ? JSON.stringify(content.text.slice(0, 80)) : content.type}`);
 
     if (content.type === "attachment") {
       if (!String(content.mimeType).startsWith("image/")) {
